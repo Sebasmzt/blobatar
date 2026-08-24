@@ -29,11 +29,11 @@ Build and run the standalone Bun server from the repository root:
 
 ```sh
 docker build --pull -t blobatar-api .
-docker run --rm -p 8787:8787 blobatar-api
+docker run --rm -p 3000:3000 blobatar-api
 ```
 
-Open `http://localhost:8787` for endpoint guidance or
-`http://localhost:8787/docs` for the interactive Scalar reference.
+Open `http://localhost:3000` for endpoint guidance or
+`http://localhost:3000/docs` for the interactive Scalar reference.
 The container uses the official `oven/bun:1.4.0-slim` image.
 
 ## Deploy your own
@@ -67,7 +67,7 @@ and into caches nobody pays for.
 Run from the repository root, so the library is built first:
 
 ```sh
-bun api      # wrangler dev → localhost:8787/avatar/alain
+bun api      # wrangler dev → localhost:3000/avatar/alain
 ```
 
 Then the tests, which need that same build:

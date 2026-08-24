@@ -29,7 +29,7 @@ docker-build:
     docker build --pull -t blobatar-api .
 
 docker-run:
-    docker run --rm -p 8787:8787 blobatar-api
+    docker run --rm -p 3000:3000 blobatar-api
 
 clean:
     rm -rf node_modules apps/*/node_modules packages/*/node_modules

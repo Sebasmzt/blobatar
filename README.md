@@ -356,7 +356,7 @@ why every cache between you and it does the actual work.
 bun install
 bun dev        # tuning grid   → localhost:3001
 bun site       # landing page  → localhost:3000
-bun api        # the endpoint  → localhost:8787/avatar/alain
+bun api        # the endpoint  → localhost:3000/avatar/alain
 bun test       # library tests
 bun run check  # tests + size budgets
 bun run media  # redraw the README images (needs Chrome + ImageMagick)

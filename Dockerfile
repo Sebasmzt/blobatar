@@ -11,9 +11,9 @@ COPY apps/api/server.ts ./server.ts
 COPY apps/api/public ./public
 
 ENV NODE_ENV=production
-ENV PORT=8787
+ENV PORT=3000
 
-EXPOSE 8787
+EXPOSE 3000
 
 USER bun
 CMD ["bun", "run", "server.ts"]

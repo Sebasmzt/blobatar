@@ -1,7 +1,7 @@
 import { serve } from "bun";
 import worker from "./src/index";
 
-const port = Number(process.env.PORT ?? 8787);
+const port = Number(process.env.PORT ?? 3000);
 const documentation = Bun.file(new URL("./public/index.html", import.meta.url));
 
 const server = serve({
