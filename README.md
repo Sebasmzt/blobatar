@@ -348,7 +348,7 @@ why every cache between you and it does the actual work.
 | ------------------- | ----------------------------------------------------------------- |
 | `packages/blobatar` | The library. [Docs here](./packages/blobatar/README.md).          |
 | `packages/cli`      | The terminal surface, published as `@blobatar/cli`.               |
-| `apps/api`          | The HTTP endpoint, deployable on its own. Serves `/avatar/<name>`. |
+| `apps/api`          | The HTTP endpoint, deployable on its own. Serves `/avatar/<name>`, `/seeded/<seed>` and `/random`. |
 | `apps/site`         | The landing page, plus `apps/api` behind blobatar.dev.            |
 | `apps/demo`         | The tuning grid — the internal design tool, not a demo.           |
 
@@ -360,6 +360,15 @@ bun api        # the endpoint  → localhost:8787/avatar/alain
 bun test       # library tests
 bun run check  # tests + size budgets
 bun run media  # redraw the README images (needs Chrome + ImageMagick)
+```
+
+The repository also provides a `Justfile`:
+
+```sh
+just          # list recipes
+just dev      # install dependencies and start the tuning grid
+just api      # install dependencies and start the API
+just clean    # remove dependencies, builds and generated files
 ```
 
 [`CONTEXT.md`](./CONTEXT.md) is the glossary — worth two minutes before changing

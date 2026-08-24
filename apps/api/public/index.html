@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>blobatar API</title>
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { max-width: 860px; margin: 0 auto; padding: 2rem 1rem; line-height: 1.5; }
+      code, pre { font-family: ui-monospace, SFMono-Regular, monospace; }
+      code { background: #8882; padding: .15rem .3rem; border-radius: .25rem; }
+      pre { overflow-x: auto; padding: 1rem; background: #8882; border-radius: .5rem; }
+      img { width: 72px; height: 72px; vertical-align: middle; margin-right: .75rem; }
+      a { color: inherit; }
+    </style>
+  </head>
+  <body>
+    <h1>blobatar API</h1>
+    <p>Geometric SVG avatars generated from names or seeds. No authentication required.</p>
+
+    <h2>Routes</h2>
+    <ul>
+      <li><a href="/avatar/alain"><code>GET /avatar/&lt;name&gt;</code></a> renders an avatar.</li>
+      <li><a href="/seeded/alain"><code>GET /seeded/&lt;seed&gt;</code></a> renders the same seed deterministically.</li>
+      <li><a href="/random"><code>GET /random</code></a> renders a new avatar on every request.</li>
+      <li><a href="/docs"><code>GET /docs</code></a> opens the interactive Scalar reference.</li>
+      <li><a href="/openapi.json"><code>GET /openapi.json</code></a> returns the OpenAPI 3.1 specification.</li>
+    </ul>
+
+    <h2>Examples</h2>
+    <p>
+      <img src="/avatar/alain?size=72" alt="">
+      <img src="/seeded/team-rocket?gen=1&amp;background=squircle" alt="">
+      <img src="/random?expression=happy" alt="">
+    </p>
+    <pre><code>curl http://localhost:8787/avatar/alain?size=64
+
+curl http://localhost:8787/seeded/team-rocket?gen=2&amp;background=squircle
+
+curl http://localhost:8787/random?expression=happy</code></pre>
+
+    <h2>Options</h2>
+    <p>
+      Optional query parameters: <code>size</code>/<code>s</code>,
+      <code>background</code>, <code>hue</code>, <code>tone</code>,
+      <code>expression</code>, <code>title</code> and <code>gen</code>.
+      Use <code>gen=1</code> or <code>gen=2</code> to pin shape generation.
+    </p>
+  </body>
+</html>

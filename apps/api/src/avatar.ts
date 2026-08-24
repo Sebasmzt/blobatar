@@ -23,7 +23,7 @@ const RENDERERS: Record<Generation, Renderer> = {
   2: blobatar2,
 };
 
-/** The one public path. Everything outside it is the site. */
+/** Public avatar path. Everything outside it is the site or API metadata. */
 export const PREFIX = "/avatar/";
 
 /**
@@ -89,9 +89,16 @@ const SECURITY = {
 const USAGE = `blobatar — deterministic avatars over HTTP
 
   GET /avatar/<name>
+  GET /seeded/<seed>
+  GET /random
+  GET /docs
 
 A name is anything that stands for somebody: a username, an email, an id,
 a Gravatar hash. The same name always renders the same blobatar.
+
+  /seeded/<seed> is an explicit spelling of the same deterministic behavior.
+  /random renders a new avatar on every request and is never cached.
+  /docs serves an interactive Scalar reference for /openapi.json.
 
 Parameters (all optional, named as the library names them):
 

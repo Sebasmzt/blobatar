@@ -42,6 +42,31 @@ const ERROR_RESPONSE = (description: string) => ({
   },
 });
 
+const AVATAR_RESPONSES = () => ({
+  "200": {
+    description: "The rendered blobatar.",
+    headers: {
+      ETag: {
+        description: "Hash of the body. Send it back as If-None-Match.",
+        schema: { type: "string" },
+      },
+      "Cache-Control": {
+        description:
+          "A day with a month of stale-while-revalidate, a year immutable when generation is pinned, or no-store for /random.",
+        schema: { type: "string" },
+      },
+    },
+    content: {
+      "image/svg+xml": {
+        schema: { type: "string", contentMediaType: "image/svg+xml" },
+      },
+    },
+  },
+  "304": { description: "The ETag matched; the body is unchanged." },
+  "400": ERROR_RESPONSE("A parameter or the name was rejected."),
+  "405": ERROR_RESPONSE("The method was not GET or HEAD."),
+});
+
 /**
  * The parameters, one description each.
  *
@@ -139,7 +164,7 @@ export function openapi(origin: string) {
       version: VERSION,
       summary: "Deterministic geometric avatars over HTTP.",
       description: [
-        "One route renders an SVG avatar from any string — a username, a display name, an email, an id, or a Gravatar digest. The same name always renders the same blobatar within a generation, so a URL is a stable identity for a person and needs no storage behind it.",
+        "Avatar routes render SVGs from names or seeds — a username, a display name, an email, an id, or a Gravatar digest. The same name always renders the same blobatar within a generation, so a URL is a stable identity for a person and needs no storage behind it.",
         "",
         "Reach for it when an application needs an avatar for somebody who has not uploaded one, when it needs a deterministic placeholder that will not change between page loads, or as a drop-in for Gravatar: swap the host and keep the rest of the URL.",
         "",
@@ -170,30 +195,37 @@ export function openapi(origin: string) {
             },
             ...query(),
           ],
-          responses: {
-            "200": {
-              description: "The rendered blobatar.",
-              headers: {
-                ETag: {
-                  description: "Hash of the body. Send it back as If-None-Match.",
-                  schema: { type: "string" },
-                },
-                "Cache-Control": {
-                  description:
-                    "A day with a month of stale-while-revalidate, or a year immutable when the request pinned a generation.",
-                  schema: { type: "string" },
-                },
-              },
-              content: {
-                "image/svg+xml": {
-                  schema: { type: "string", contentMediaType: "image/svg+xml" },
-                },
-              },
+          responses: AVATAR_RESPONSES(),
+        },
+      },
+      "/seeded/{seed}": {
+        get: {
+          operationId: "getSeededAvatar",
+          summary: "Render a deterministic avatar from an explicit seed",
+          description:
+            "Returns the same SVG for the same seed and options. This route is an explicit alias for /avatar/{name}; use gen=1 or gen=2 to pin its shape vocabulary.",
+          parameters: [
+            {
+              name: "seed",
+              in: "path",
+              required: true,
+              description: `Any URL-encoded seed, ${MAX_NAME} characters or fewer after percent-decoding. A slash must be percent-encoded as %2F.`,
+              schema: { type: "string", minLength: 1, maxLength: MAX_NAME },
+              example: "user-42",
             },
-            "304": { description: "The ETag matched; the body is unchanged." },
-            "400": ERROR_RESPONSE("A parameter or the name was rejected."),
-            "405": ERROR_RESPONSE("The method was not GET or HEAD."),
-          },
+            ...query(),
+          ],
+          responses: AVATAR_RESPONSES(),
+        },
+      },
+      "/random": {
+        get: {
+          operationId: "getRandomAvatar",
+          summary: "Render a new random avatar",
+          description:
+            "Returns a newly generated avatar on every request. Query parameters control rendering, and responses are marked no-store so callers do not reuse a random result.",
+          parameters: query(),
+          responses: AVATAR_RESPONSES(),
         },
       },
       "/avatar/": {

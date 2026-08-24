@@ -87,6 +87,13 @@ describe("the spec is callable by a model", () => {
   });
 });
 
+describe("the random and seeded routes are documented", () => {
+  test("has unique operations for both routes", () => {
+    expect(document.paths["/seeded/{seed}"].get.operationId).toBe("getSeededAvatar");
+    expect(document.paths["/random"].get.operationId).toBe("getRandomAvatar");
+  });
+});
+
 describe("serving it", () => {
   test("names the origin it was fetched from, not a hardcoded host", async () => {
     const fork = "https://blobatar-api.someone.workers.dev";

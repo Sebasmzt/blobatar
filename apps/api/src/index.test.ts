@@ -12,6 +12,26 @@ test("/avatar/ reaches the renderer", async () => {
   expect(await fetchIt("/avatar/alain").text()).toBe(blobatar("alain"));
 });
 
+test("/seeded/<seed> is a deterministic alias for /avatar/<name>", async () => {
+  expect(await fetchIt("/seeded/alain?gen=1").text())
+    .toBe(await fetchIt("/avatar/alain?gen=1").text());
+});
+
+test("/random renders an image and is never cached", async () => {
+  const res = fetchIt("/random?size=64");
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toBe("image/svg+xml; charset=utf-8");
+  expect(res.headers.get("cache-control")).toBe("no-store");
+});
+
+test("/docs serves the Scalar OpenAPI reference", async () => {
+  const res = fetchIt("/docs");
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
+  expect(res.headers.get("content-security-policy")).toContain("cdn.jsdelivr.net");
+  expect(await res.text()).toContain("@scalar/api-reference@1.66.1");
+});
+
 test("the root documents the endpoint", async () => {
   const res = fetchIt("/");
   expect(res.status).toBe(200);

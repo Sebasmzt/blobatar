@@ -80,7 +80,8 @@ const HINTS: Record<ErrorCode, string> = {
   name_too_long:
     "Hash the identifier before using it as a name — a digest is a stable seed and always fits.",
   method_not_allowed: "Repeat the request as GET or HEAD.",
-  not_found: "The only route is GET /avatar/<name>. See /openapi.json for its parameters.",
+  not_found:
+    "Use GET /avatar/<name>, GET /seeded/<seed> or GET /random. See /openapi.json for parameters.",
 };
 
 /** The JSON body, as the one shape every error here comes out in. */

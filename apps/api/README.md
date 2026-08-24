@@ -1,9 +1,13 @@
 # blobatar over HTTP
 
-One Cloudflare Worker, one route:
+One API, with deterministic, seeded and random avatar routes:
 
 ```
 GET /avatar/<name>
+GET /seeded/<seed>
+GET /random
+GET /docs
+GET /openapi.json
 ```
 
 `<name>` is anything that stands for somebody — a username, an email, an id, a
@@ -12,8 +16,25 @@ are named as the library names them (`size`/`s`, `background`, `hue`, `tone`,
 `expression`, `title`), and Gravatar's `d`, `f` and `r` are accepted and
 ignored so that an existing Gravatar URL works by changing the host alone.
 
-`GET /avatar/` returns the full parameter list; so does any other path, with a
-404.
+`GET /avatar/` returns the full parameter list. `/docs` serves an interactive
+Scalar reference backed by `/openapi.json`. Unknown paths return a 404.
+
+`/seeded/<seed>` is an explicit deterministic alias for `/avatar/<name>`. The
+same seed and options always produce the same SVG. `/random` creates a new
+avatar for every request and is not cached.
+
+## Docker
+
+Build and run the standalone Bun server from the repository root:
+
+```sh
+docker build --pull -t blobatar-api .
+docker run --rm -p 8787:8787 blobatar-api
+```
+
+Open `http://localhost:8787` for endpoint guidance or
+`http://localhost:8787/docs` for the interactive Scalar reference.
+The container uses the official `oven/bun:1.4.0-slim` image.
 
 ## Deploy your own
 
