@@ -42,7 +42,7 @@ const ERROR_RESPONSE = (description: string) => ({
   },
 });
 
-const AVATAR_RESPONSES = () => ({
+const AVATAR_RESPONSES = (includeSeed = false) => ({
   "200": {
     description: "The rendered blobatar.",
     headers: {
@@ -55,6 +55,12 @@ const AVATAR_RESPONSES = () => ({
           "A day with a month of stale-while-revalidate, a year immutable when generation is pinned, or no-store for /random.",
         schema: { type: "string" },
       },
+      ...(includeSeed && {
+        "X-Blobatar-Seed": {
+          description: "The random seed used to render this response.",
+          schema: { type: "string", format: "uuid" },
+        },
+      }),
     },
     content: {
       "image/svg+xml": {
@@ -225,7 +231,7 @@ export function openapi(origin: string) {
           description:
             "Returns a newly generated avatar on every request. Query parameters control rendering, and responses are marked no-store so callers do not reuse a random result.",
           parameters: query(),
-          responses: AVATAR_RESPONSES(),
+          responses: AVATAR_RESPONSES(true),
         },
       },
       "/avatar/": {

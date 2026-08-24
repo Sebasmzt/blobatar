@@ -22,6 +22,10 @@ test("/random renders an image and is never cached", async () => {
   expect(res.status).toBe(200);
   expect(res.headers.get("content-type")).toBe("image/svg+xml; charset=utf-8");
   expect(res.headers.get("cache-control")).toBe("no-store");
+  const seed = res.headers.get("x-blobatar-seed")!;
+  expect(seed).toMatch(/^[0-9a-f-]{36}$/);
+  expect(res.headers.get("access-control-expose-headers")).toBe("x-blobatar-seed");
+  expect(await fetchIt(`/seeded/${seed}?size=64`).text()).toBe(await res.text());
 });
 
 test("/docs serves the Scalar OpenAPI reference", async () => {

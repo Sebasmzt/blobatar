@@ -22,6 +22,8 @@ Scalar reference backed by `/openapi.json`. Unknown paths return a 404.
 `/seeded/<seed>` is an explicit deterministic alias for `/avatar/<name>`. The
 same seed and options always produce the same SVG. `/random` creates a new
 avatar for every request and is not cached.
+The random response includes its value in the `X-Blobatar-Seed` header; pass
+that value to `/seeded/<seed>` to reproduce it.
 
 ## Docker
 

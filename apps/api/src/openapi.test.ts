@@ -91,6 +91,8 @@ describe("the random and seeded routes are documented", () => {
   test("has unique operations for both routes", () => {
     expect(document.paths["/seeded/{seed}"].get.operationId).toBe("getSeededAvatar");
     expect(document.paths["/random"].get.operationId).toBe("getRandomAvatar");
+    expect(document.paths["/random"].get.responses["200"].headers["X-Blobatar-Seed"])
+      .toBeDefined();
   });
 });
 

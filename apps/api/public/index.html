@@ -46,5 +46,10 @@ curl http://localhost:3000/random?expression=happy</code></pre>
       <code>expression</code>, <code>title</code> and <code>gen</code>.
       Use <code>gen=1</code> or <code>gen=2</code> to pin shape generation.
     </p>
+    <p>
+      <code>/random</code> returns its generated value in the
+      <code>X-Blobatar-Seed</code> response header. Use that value with
+      <code>/seeded/&lt;seed&gt;</code> to reproduce the avatar.
+    </p>
   </body>
 </html>

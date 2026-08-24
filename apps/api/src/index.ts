@@ -13,11 +13,16 @@ function rewrite(request: Request, pathname: string): Response {
 
 function random(request: Request): Response {
   const url = new URL(request.url);
-  url.pathname = `${PREFIX}${encodeURIComponent(crypto.randomUUID())}`;
+  const seed = crypto.randomUUID();
+  url.pathname = `${PREFIX}${encodeURIComponent(seed)}`;
 
   const response = rewrite(request, url.pathname);
   const headers = new Headers(response.headers);
   headers.set("cache-control", "no-store");
+  if (response.ok) {
+    headers.set("x-blobatar-seed", seed);
+    headers.set("access-control-expose-headers", "x-blobatar-seed");
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
