@@ -145,6 +145,8 @@ generation, so the ordinary API remains just `blobatar(name, options)`.
 verified at 1° resolution in the test suite. Polarity flips automatically, so
 the near-black tone gets light eyes rather than an invisible face.
 Colors passed via the `palette` option bypass all of this, by definition.
+A hex `backgroundColor` does not: the body is pushed off it the same way it is
+pushed off the default backdrop.
 
 **Name normalization.** Names are NFC-normalized, trimmed and lowercased before
 hashing, so `Alain@Example.com` and `alain@example.com` agree, as do the
@@ -157,19 +159,20 @@ several hundred blobatars on one page cannot produce id collisions.
 
 ## Options
 
-| Option       | Default     | Notes                                                                   |
-| ------------ | ----------- | ----------------------------------------------------------------------- |
-| `size`       | —           | Emits `width`/`height`. Omit to let CSS size it.                        |
-| `background` | none        | `"squircle"`, `"circle"`, `"square"`, or `false`.                       |
-| `hue`        | —           | Locks hue in degrees; the name then drives shape only.                 |
-| `tone`       | —           | Locks the swatch as a 0–1 position in the set, pale to ink. `1` sits on the top edge and renders as `0`; use `0.999` for ink. |
-| `traits`     | —           | Pins individual traits as 0–1 positions, or a list to choose among. See below. |
-| `palette`    | —           | Per-key hex overrides. Bypasses the contrast guarantee.                 |
-| `normalize`  | `true`      | NFC + trim + lowercase.                                                 |
-| `contrast`   | `true`      | Enforce the contrast floors.                                            |
-| `title`      | —           | Adds a `<title>` for screen readers.                                    |
-| `animate`    | —           | `"hover"` or `"always"`. See below — it changes how the blobatar renders. |
-| `expression` | `idle`      | One of fourteen poses, imported as a value. See below.                  |
+| Option            | Default | Notes                                                                   |
+| ----------------- | ------- | ----------------------------------------------------------------------- |
+| `size`            | —       | Emits `width`/`height`. Omit to let CSS size it.                        |
+| `background`      | none    | `"squircle"`, `"circle"`, `"square"`, or `false`.                       |
+| `backgroundColor` | —       | The backdrop's fill color; needs a `background`. Keeps the contrast guarantee for `#rgb`/`#rrggbb`; other CSS colors are painted as given. |
+| `hue`             | —       | Locks hue in degrees; the name then drives shape only.                 |
+| `tone`            | —       | Locks the swatch as a 0–1 position in the set, pale to ink. `1` sits on the top edge and renders as `0`; use `0.999` for ink. |
+| `traits`          | —       | Pins individual traits as 0–1 positions, or a list to choose among. See below. |
+| `palette`         | —       | Per-key hex overrides. Bypasses the contrast guarantee.                 |
+| `normalize`       | `true`  | NFC + trim + lowercase.                                                 |
+| `contrast`        | `true`  | Enforce the contrast floors.                                            |
+| `title`           | —       | Adds a `<title>` for screen readers.                                    |
+| `animate`         | —       | `"hover"` or `"always"`. See below — it changes how the blobatar renders. |
+| `expression`      | `idle`  | One of fourteen poses, imported as a value. See below.                  |
 
 ## Configuring
 
@@ -267,6 +270,108 @@ every consumer of `blobatar()` carries the motion code whether they animate or
 not, which is a real cost for a feature most callers will never use. If you need
 animated markup without a framework, open an issue: it wants its own entry point
 rather than a branch inside `blobatar()`.
+
+### Following the pointer
+
+The eyes can track the cursor. This is the one motion layer that needs
+JavaScript, so it ships as its own entry point and a second stylesheet, and a
+page that never imports them pays nothing for it.
+
+Every adapter wraps it, each behind a `/gaze` subpath of its own so that
+importing `Blobatar` links none of it:
+
+```tsx
+import { Blobatar } from "@blobatar/react";
+import { useGaze } from "@blobatar/react/gaze";
+import "blobatar/motion.css";
+import "blobatar/gaze.css"; // required — the eyes hold still without it
+
+const { ref } = useGaze({ travel: 3 });
+<Blobatar ref={ref} name={user.email} animate="always" size={200} />;
+```
+
+The binding takes the shape its framework reaches an element with, and that is
+the only thing that differs between them — same options, same targets, same
+driver:
+
+| | |
+| --- | --- |
+| `@blobatar/react/gaze` | `useGaze()` hands back a `ref` |
+| `@blobatar/preact/gaze` | the same hook; the ref goes on `elementRef`, since Preact keeps `ref` from a function component's props |
+| `@blobatar/vue/gaze` | `useGaze(blobRef, …)` takes the template ref you already own |
+| `@blobatar/solid/gaze` | `createGaze()` *is* the ref |
+| `@blobatar/svelte/gaze` | `gaze()` is an attachment: `{@attach eyes}` |
+
+Each adapter's README has the two-line integration. Anywhere else, drive it
+yourself against the `<svg>`:
+
+```ts
+import { gaze } from "blobatar/gaze";
+
+const g = gaze(svgEl);
+```
+
+The excursion is what opts a blobatar in. `--mo-track-travel` is registered with
+an initial value of `0px`, so with the stylesheet loaded and nothing else done
+every blobatar on the page holds still. Every binding takes it as `travel`;
+without one, set the property on the blobatar or on anything above it, and that
+subtree follows:
+
+```css
+.hero .mo-eyes { --mo-track-travel: 3px; } /* viewBox units, ~1.5–4 reads well */
+```
+
+Pick one route, not both. A rule matching `.mo-eyes` wins over the hook's
+`travel`, not the other way round: the hook writes the property inline on the
+`<svg>` and the eyes inherit it from there, and a declaration on the element
+itself always beats an inherited value however that value was written. Set both
+and the rule is what you get, silently. The symptom is a face that renders
+perfectly and never moves, which is the same thing you see when nothing sets the
+excursion at all.
+
+The idle glance stands down on its own while the gaze is driving, so the eyes
+are not being aimed at two things at once, and it fades back in when the driver
+detaches rather than snapping.
+
+`gaze()` returns a handle. `lookAt` is the one seam for aiming it, and it takes
+five kinds of thing:
+
+```ts
+g.lookAt({ x: caretX, y: caretY }); // a point in client coordinates — a caret
+g.lookAt(button); // an element: its centre, re-read as the page moves
+g.lookAt("pointer"); // the cursor
+g.lookAt("rest"); // its own centre, held: deliberately not looking
+g.lookAt(null); // nothing — the eyes ease home and the idle glance comes back
+```
+
+A driver starts at `null`, so `gaze(svg)` arms the layer and moves nothing until
+it is aimed. `gaze(svg, { target: "pointer" })` is the cursor-following blobatar
+most pages are after, and it is spelled out rather than assumed: constructing a
+driver is not the same as deciding what it should watch.
+
+`"rest"` and `null` are both "stop looking at that" and they are not the same
+request. `"rest"` keeps the idle glance stood down, so the stillness reads as a
+face choosing not to look; `null` hands the blobatar back to its own life with
+the driver still attached. Neither is `stop()`, which is teardown: it removes
+every listener and both properties, and the eyes snap rather than glide.
+
+Passing an element is the one worth reaching for. The driver already re-reads
+its own box on scroll, resize and its own resizes, so a watched element rides on
+the same machinery and keeps its aim through all three — which is exactly the
+pair of listeners a caller otherwise writes by hand around `getBoundingClientRect`,
+and usually only one of them.
+
+It follows the same rules as the rest of the motion layer, and for the same
+reasons: nothing attaches under `prefers-reduced-motion` or without a fine
+pointer, and both are watched rather than sampled once, so turning reduced
+motion on mid-session detaches the driver. A settled blobatar under a still
+pointer schedules no frames at all.
+
+`blobatar/gaze` also exports the pursuit as pure arithmetic — `step`, with no
+clock and no DOM — for renderers that solve frames out of order.
+
+This is a large-size effect. On a 40px avatar in a list it is a fraction of a
+pixel; it earns its place on the one big blobatar a page is about.
 
 ### React Native
 

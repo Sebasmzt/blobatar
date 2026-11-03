@@ -87,8 +87,10 @@ const ENTRIES: {
   // would be two crowds drifting apart, which is the one property in the whole
   // motion layer that a grid actually shows. The cost is a named object with
   // ten keys that minification cannot mangle.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "@blobatar/react",
-    budget: 5320,
+    budget: 5480,
     external: ["react"],
     source: `import { Blobatar } from "@blobatar/react";
              globalThis.x = Blobatar;`,
@@ -112,8 +114,10 @@ const ENTRIES: {
   // would be two crowds drifting apart, which is the one property in the whole
   // motion layer that a grid actually shows. The cost is a named object with
   // ten keys that minification cannot mangle.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "blobatar/react",
-    budget: 5300,
+    budget: 5480,
     external: ["react"],
     source: `import { Blobatar } from "blobatar/react";
              globalThis.x = Blobatar;`,
@@ -131,8 +135,10 @@ const ENTRIES: {
   // would be two crowds drifting apart, which is the one property in the whole
   // motion layer that a grid actually shows. The cost is a named object with
   // ten keys that minification cannot mangle.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "@blobatar/vue",
-    budget: 5500,
+    budget: 5680,
     external: ["vue"],
     ext: "ts",
     source: `import { Blobatar } from "@blobatar/vue";
@@ -147,8 +153,10 @@ const ENTRIES: {
   // would be two crowds drifting apart, which is the one property in the whole
   // motion layer that a grid actually shows. The cost is a named object with
   // ten keys that minification cannot mangle.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "blobatar/vue",
-    budget: 5470,
+    budget: 5670,
     external: ["vue"],
     ext: "ts",
     source: `import { Blobatar } from "blobatar/vue";
@@ -159,22 +167,33 @@ const ENTRIES: {
     // re-exporting one, so this is core plus real adapter code — not core plus
     // an indirection. Expect it to sit above the React row by whatever the
     // component costs, and see the `alone` row below for that number on its own.
-    // 6432 B measured. ~1.2 kB over the React row, which is the component
+    // 6451 B measured. ~1.2 kB over the React row, which is the component
     // itself: Solid's compiled output carries its own `template`/`insert`
     // scaffolding per element, where React's row is a re-export standing in
     // front of core's already-minified `dist/react.js`.
+    // Raised from 6470 by `<Show>` replacing the branch's ternary — 19 B for an
+    // `<svg>` that survives a prop change instead of being rebuilt on every
+    // one. `@blobatar/solid alone` carries the same 17 B.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "@blobatar/solid",
-    budget: 6470,
+    budget: 6700,
     external: ["solid-js", "solid-js/web"],
     ext: "tsx",
     source: `import { Blobatar } from "@blobatar/solid";
              globalThis.x = Blobatar;`,
   },
   {
-    // 6011 B measured, ~780 B over React's row and ~420 B under Solid's — the
+    // 6057 B measured, ~780 B over React's row and ~420 B under Solid's — the
     // same component written against a runtime that needs less per element.
+    // Raised from 6050 by `elementRef`, which is 15 B of forwarding on the
+    // adapter's own row and the only way `@blobatar/preact/gaze` can be handed
+    // an element: Preact takes `ref` off a function component's props before
+    // the component sees them.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "@blobatar/preact",
-    budget: 6050,
+    budget: 6300,
     external: ["preact", "preact/hooks", "preact/jsx-runtime"],
     ext: "tsx",
     source: `import { Blobatar } from "@blobatar/preact";
@@ -213,8 +232,10 @@ const ENTRIES: {
     // only the morph row is the morph; a change that moves only this one means
     // something the morph needs became reachable from the component that does
     // not.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "@blobatar/react-native",
-    budget: 4960,
+    budget: 5190,
     external: ["react", "react/jsx-runtime", "react-native", "react-native-svg"],
     ext: "tsx",
     source: `import { Blobatar } from "@blobatar/react-native";
@@ -252,8 +273,10 @@ const ENTRIES: {
     // this component is for. A consumer who does not want the bytes or the
     // native dependency imports one of the two rows above and links none of it,
     // which is why this lives behind `/animated` rather than at the root.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "@blobatar/react-native animated",
-    budget: 10_200,
+    budget: 10_370,
     // Reanimated and worklets are external for the reason the native modules
     // already here are: they are a JavaScript half bolted to a native half that
     // the consumer's app links once. Their bytes are not this package's to
@@ -293,8 +316,10 @@ const ENTRIES: {
     // component owns: interrupt handling has exactly one subtle rule in it, and
     // a second copy of that rule in the animated component is a worse trade
     // than 170 B. The alternative was measured, not assumed.
+    // Raised for `backgroundColor` (the core cost, plus a little where the adapter
+    // forwards the prop) — see "blob only" in core's `scripts/size.ts`.
     name: "@blobatar/react-native morph",
-    budget: 6080,
+    budget: 6290,
     external: ["react", "react/jsx-runtime", "react-native", "react-native-svg"],
     ext: "tsx",
     source: `import { MorphingBlobatar } from "@blobatar/react-native";
@@ -334,6 +359,89 @@ const ENTRIES: {
     external: ["react", "blobatar", "blobatar/react", "blobatar/internal", "blobatar/uri"],
     source: `import { Blobatar } from "@blobatar/react";
              globalThis.x = Blobatar;`,
+  },
+  {
+    /*
+     * The hook's own code, with the driver external.
+     *
+     * The number next to it that matters is `@blobatar/react alone` above,
+     * still at its 110 B budget: the gaze layer is a separate entry precisely
+     * so that importing `Blobatar` never reaches it, and importing this module
+     * from `index.tsx` would blow that row rather than this one. Two rows, one
+     * claim, and the claim is what a consumer who never gazes pays.
+     */
+    // Raised from 400 by the `travel` option: +86 B for the effect that writes
+    // `--mo-track-travel` inline and remeasures after. That buys the layer's
+    // opt-in switch a place in the JS API, where "the driver runs and nothing
+    // moves" is otherwise caused by a CSS property nothing in this signature
+    // mentions, and it makes the driver's cached write threshold refresh itself
+    // rather than being a documented gotcha.
+    name: "@blobatar/react/gaze alone",
+    budget: 470,
+    external: ["react", "blobatar", "blobatar/gaze"],
+    ext: "tsx",
+    source: `import { useGaze } from "@blobatar/react/gaze";
+             globalThis.x = useGaze;`,
+  },
+  {
+    /* The hook with the driver resolved, which is what the import actually
+       costs a page that opts in. */
+    // Raised from 1550 when §4.5 became a spherical projection rather than a
+    // translate: the growth is all `blobatar/gaze`, whose own entry carries the
+    // reasoning. The number to read beside it is `@blobatar/react alone`, which
+    // did not move — this is what a consumer who gazes pays, and the 76 B above
+    // is still what everybody else does.
+    // …and to 2650 for the target vocabulary, which is the same story again:
+    // the driver grew by the element-watching and the stand-down ramp, the hook
+    // shrank a little by losing `home()` to `lookAt("rest")`, and
+    // `@blobatar/react alone` did not move.
+    name: "@blobatar/react/gaze shipped",
+    budget: 2650,
+    external: ["react"],
+    ext: "tsx",
+    source: `import { useGaze } from "@blobatar/react/gaze";
+             globalThis.x = useGaze;`,
+  },
+  /*
+   * One row per binding, and the point of having four is the comparison. Each
+   * is the adapter's own code with the driver external, so a number that grows
+   * out of line with the others is a binding doing something the layer does not
+   * need — and the row that matters beside every one of them is its adapter's
+   * `alone` row, which must not move at all: the gaze is a separate entry
+   * precisely so that importing `Blobatar` never reaches it.
+   */
+  {
+    // 381 B measured. A composable with a `watch` and a scope-dispose, which is
+    // what it costs to be handed a ref instead of handing one back.
+    name: "@blobatar/vue/gaze alone",
+    budget: 410,
+    external: ["vue", "blobatar", "blobatar/gaze"],
+    ext: "ts",
+    source: `import { useGaze } from "@blobatar/vue/gaze";
+             globalThis.x = useGaze;`,
+  },
+  {
+    // 318 B measured, and the smallest of the four because Solid does not
+    // re-render: there is no callback ref to keep, no dependency array and no
+    // declared target to re-apply, so the binding is the driver's two seams and
+    // an `onCleanup`.
+    name: "@blobatar/solid/gaze alone",
+    budget: 350,
+    external: ["solid-js", "blobatar", "blobatar/gaze"],
+    ext: "ts",
+    source: `import { createGaze } from "@blobatar/solid/gaze";
+             globalThis.x = createGaze;`,
+  },
+  {
+    // 450 B measured against React's 444 B, which is the number worth reading:
+    // the two files are the same hook, and a divergence here would mean one of
+    // them had grown a behaviour the other lacks.
+    name: "@blobatar/preact/gaze alone",
+    budget: 480,
+    external: ["preact", "preact/hooks", "blobatar", "blobatar/gaze"],
+    ext: "ts",
+    source: `import { useGaze } from "@blobatar/preact/gaze";
+             globalThis.x = useGaze;`,
   },
   {
     name: "@blobatar/vue alone",
@@ -400,13 +508,22 @@ const ENTRIES: {
  * consumer's, so what it compiles *to* is not this package's to report.
  */
 const SHIPPED: { name: string; from: string; budget: number }[] = [
-  // 2613 B measured, and larger than any bundled row above for a reason worth
+  // 5400 B measured, and larger than any bundled row above for a reason worth
   // stating rather than optimizing away: this is source, so it ships its
   // comments. The consumer's compiler drops them before they reach a bundle, so
   // the number a *user* pays is smaller than this one and is not measurable
   // here — what this row gates is the wire, which is the only part this package
   // controls.
-  { name: "@blobatar/svelte", from: "../svelte/src", budget: 2650 },
+  //
+  // 2613 B of that until `./gaze` arrived, and the jump is the one place this
+  // row reads differently from the built adapters above. There, a second entry
+  // costs a consumer nothing until they import it, and `@blobatar/react alone`
+  // is the row that says so. A tarball has no entries: `src/gaze.js` crosses
+  // the wire whether or not anything imports it, and the subpath only keeps it
+  // out of the *bundle*. So this number covers both entries on purpose, and the
+  // promise the subpath makes is the one the packaging test states — `index.js`
+  // names nothing in `gaze.js`.
+  { name: "@blobatar/svelte", from: "../svelte/src", budget: 5450 },
 ];
 
 rmSync(DIR, { recursive: true, force: true });

@@ -85,8 +85,15 @@ const ENTRIES: {
     // along their diameters, and a taper has to be the tangents from its apex to
     // the body ellipse. Measured against the arc-drawn single-outline version of
     // the same two shapes, which is a further 108 B for an identical render.
+    //
+    // Raised from 4410 by 70 B for `backgroundColor`: the option wiring and
+    // measuring the plate, so the body/backdrop floor holds against a caller's
+    // color rather than only against the authored one. That is the sRGB decode
+    // and a cube root — `fromHex` would have cost roughly twice as much again,
+    // since nothing else in the core reaches the OKLab decode. Every entry
+    // below that renders carries the same bytes for the same reason.
     name: "blob only",
-    budget: 4410,
+    budget: 4480,
     external: [] as string[],
     source: `import { blobatar } from "../../src/blob";
              globalThis.x = blobatar(String(globalThis.seed));`,
@@ -95,14 +102,14 @@ const ENTRIES: {
     // The barrel. Costs more than `blob only` above because it also carries the
     // colour and trait utilities, which a consumer who only renders never touches.
     name: "barrel",
-    budget: 4400,
+    budget: 4470,
     external: [],
     source: `import { blobatar } from "../../src/index";
              globalThis.x = blobatar(String(globalThis.seed));`,
   },
   {
     name: "uri",
-    budget: 4490,
+    budget: 4570,
     external: [],
     source: `import { blobatarUri } from "../../src/uri";
              globalThis.x = blobatarUri(String(globalThis.seed));`,
@@ -125,8 +132,10 @@ const ENTRIES: {
     // as `--mo-head`/`--mo-eye`. Those go out on every animated `blob`, tinted
     // or not, so the stylesheet's `fill` rules always resolve to something
     // correct — a `var()` with nothing behind it makes `fill` inherit black.
+    //
+    // Raised from 5370 by 120 B for `backgroundColor` — see "blob only".
     name: "react",
-    budget: 5370,
+    budget: 5490,
     external: ["react"],
     source: `import { Blobatar } from "../../src/react";
              globalThis.x = Blobatar;`,
@@ -138,7 +147,7 @@ const ENTRIES: {
     // Measured: +343 B for the first expression (the shared serializer and bake,
     // paid once) and +36 B for each one after it. Importing all three is 4098.
     name: "blob + happy",
-    budget: 4740,
+    budget: 4810,
     external: [],
     source: `import { blobatar } from "../../src/blob";
              import { happy } from "../../src/expression";
@@ -162,8 +171,11 @@ const ENTRIES: {
     // the others use. The adapter is the newest surface and the one most
     // likely to need a correction, and a gate that fails on a 20 B bug fix
     // teaches people to raise the number without reading it.
+    //
+    // Raised from 5650 by 70 B for `backgroundColor` — see "blob only" — plus
+    // the runtime prop declaration, keeping the slack described above.
     name: "vue",
-    budget: 5650,
+    budget: 5720,
     external: ["vue"],
     source: `import { Blobatar } from "../../src/vue";
              globalThis.x = Blobatar;`,
@@ -244,6 +256,76 @@ const ENTRIES: {
     external: [],
     ext: "css",
     source: `@import "../../src/motion.css";`,
+  },
+  {
+    // The one motion layer with a JavaScript half, and the only one a consumer
+    // can decline: §4.5 ships as its own entry precisely so that a page with no
+    // pointer driver never pays for it. Measured through the driver rather than
+    // through `step`, because the driver is what a page imports and the pure
+    // core comes with it.
+    //
+    // `docs/motion-spec.md` §10 reserved 900 B for this before it was written,
+    // and it does not fit: measured at 1194. Raised rather than shaved, because
+    // the three things over that estimate are the three the estimate predated,
+    // and each is load-bearing.
+    //
+    //  - The live media queries. `prefers-reduced-motion` and `hover: hover`
+    //    are read as `MediaQueryList`s with `change` listeners, not sampled once
+    //    at construction, so the driver attaches and detaches as they move. A
+    //    person turning reduced motion on mid-session is asking for the motion
+    //    to stop now, not on their next reload, and a driver that samples cannot
+    //    honour that. The attach/detach pair is most of this entry's overage.
+    //  - `--mo-track-hold`, its own exponential and its own coarser threshold,
+    //    which is what lets the idle rove cross-fade out instead of being
+    //    hard-zeroed by every host that wants both layers.
+    //  - Reading `--mo-track-travel` back off the element, so the excursion has
+    //    one home in the stylesheet rather than two that drift.
+    //
+    // The floor to hold it against is `motion.css`: this is the layer a page
+    // without a pointer driver declines entirely, which is the whole reason it
+    // is a separate entry and not more bytes on the file everybody pays for.
+    //
+    // Raised from 1250 for the spherical projection (§4.5's wrap). That is
+    // `project()`, the per-eye survey `getBBox` gives it, and five writes an
+    // eye per moving frame instead of two for the pair. What it buys is the
+    // thing the translate it replaced could not do at any budget: an eye that
+    // cannot leave the head, because a sine does not exceed one. The
+    // alternative was a `clipPath` per blobatar, which costs an id, and "emits
+    // no ids" is a guarantee with a test behind it.
+    // …and to 2100 for fitting the head to the silhouette rather than to its
+    // bounding box. The roster does not agree on one number — the largest safe
+    // ellipse is 0.98 of the box on `round` and 0.39 on `triangle` — so it is
+    // measured per blobatar with sixteen bisections against `isPointInFill`,
+    // once on attach, in viewBox units that a scroll cannot change.
+    // …and to 2400 for the target vocabulary: `lookAt` takes an element, the
+    // two words, or a point, where it used to take a point or `null`. The bytes
+    // are the element being watched rather than sampled — its centre re-read on
+    // the measure the driver already does, and a second `observe` on the one
+    // `ResizeObserver` it already has — plus the stand-down becoming a ramp
+    // toward a target instead of toward 1, which is what makes `lookAt(null)`
+    // hand the idle glance back over a curve rather than switch it on. Both
+    // were previously the caller's problem, and the element one cost every
+    // caller two scroll listeners to solve worse.
+    name: "gaze",
+    budget: 2400,
+    external: [],
+    source: `import { gaze } from "../../src/gaze";
+             globalThis.x = gaze(globalThis.el as SVGSVGElement);`,
+  },
+  {
+    // Separate from `motion css` for the reason the stylesheet's own header
+    // gives: this file is paid only by pages that drive a gaze, and folding it
+    // into the one everybody pays for would mean raising that budget to carry
+    // rules most consumers never use.
+    // Raised from 300 with the projection: three of `motion.css`'s own
+    // declarations restated with the gaze's terms folded in, because `.mo-eye`
+    // has no free transform property left, plus the five per-eye mixes that
+    // pick a side through `--mo-sel`.
+    name: "gaze css",
+    budget: 450,
+    external: [],
+    ext: "css",
+    source: `@import "../../src/gaze.css";`,
   },
 ];
 

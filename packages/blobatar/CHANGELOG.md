@@ -1,5 +1,118 @@
 # Changelog
 
+## 2.8.0
+
+### Minor Changes
+
+- 5b47179: Add `backgroundColor`, a direct way to set the backdrop's fill color.
+  
+  ```ts
+  blobatar(user.email, { background: "circle", backgroundColor: "#fef3c7" });
+  ```
+  
+  It has no effect unless a backdrop is drawn, since there is no plate to color otherwise, and an explicit `palette.bg` still wins if both are given.
+  
+  Unlike `palette: { bg }`, it keeps the contrast guarantee: a `#rgb`/`#rrggbb` plate takes the default backdrop's place in the contrast floors, so the body is pushed off the color that is actually drawn instead of vanishing into it. Any other CSS color (`var(--x)`, a named color) is painted as given. Blobatars without a `backgroundColor`, or without a backdrop, render byte-identically to before.
+  
+  Every adapter (`@blobatar/react`, `@blobatar/vue`, `@blobatar/solid`, `@blobatar/preact`, `@blobatar/svelte`, `@blobatar/react-native`) forwards the new prop the same way it forwards `background`, and the Flutter port gains `BlobatarOptions.backgroundColor` with the same behaviour.
+
+## 2.7.0
+
+### Patch Changes
+
+- 6e900d9: Fix the Solid adapter rebuilding its `<svg>` on every prop change, and finish documenting the gaze bindings.
+  
+  The branch between the two rendering modes was a ternary inside a dynamic child expression, which Solid compiles to one computation: it re-ran whenever anything it read changed — a new `name`, a new `hue`, a new size — and re-running it built a fresh element and swapped it in. That is the failure the comment inside the `<svg>` is about, one level up. A fresh element has no previous computed value, so every idle animation under it restarted from phase zero on any prop change, and anything holding the old element — a gaze driver, most obviously — was left measuring a node that had left the document. It was the only adapter that did this; React, Preact, Vue and Svelte all keep the element and update its attributes.
+  
+  It is a non-keyed `<Show>` now, which memoizes on the condition rather than on the value, so the branch is built once and stays while `parts()` keeps returning something. Everything inside is an ordinary reactive attribute updated in place. 19 B on the adapter's row.
+  
+  `packages/harness/scripts/probe-gaze.ts` grew the check that would have caught it, asked of every adapter: the `<svg>` a binding was given is still the same element after a prop change. Checked by identity, which is the only way to see it, since the rebuilt element renders identically.
+  
+  The same defect showed on the hydrated path, where it is worse: a server-rendered blobatar was adopted correctly and then thrown away on the first prop change. `packages/harness/scripts/probe-gaze.ts` now hydrates the SSR build's markup with the DOM build and checks both halves — that the client adopts the server's element rather than silently rebuilding it, that the gaze `ref` fires on a hydrated tree, and that a later prop change redraws in place. Nothing tested hydration before, in either direction.
+  
+  `packages/blobatar/README.md` and the site's docs page still described the gaze as React's alone. Both now name all five bindings.
+  
+  The probe's fixtures are written in each framework's own source syntax now — a `.svelte` component using `{@attach eyes}`, a `.vue` SFC with `ref="blob"` in the template, Solid JSX with `<Blobatar ref={eyes} />`, Preact JSX behind its own `jsxImportSource` — and compiled by that framework's own compiler. They were the calls those lines compile to, which is the correct target and checks the chain each one starts, but left the line a consumer copies out of a README unchecked. It also got one thing wrong that nothing else could see: a hand-written component call opens no component boundary, and Solid numbers its hydration keys against those, which made the hydration fixture fail for a reason that was the probe's rather than the adapter's. No new dependency but Solid's transform: Svelte's compiler ships with Svelte and Vue's with Vue.
+
+## 2.6.0
+
+### Minor Changes
+
+- 5163644: Add `blobatar/gaze` and `blobatar/gaze.css`: the pointer-driven gaze layer, §4.5 of the motion spec, and the only motion layer with a JavaScript half.
+  
+  Import the stylesheet once beside `blobatar/motion.css`, set `--mo-track-travel` on the blobatars that should follow the pointer, and run the driver on the `<svg>`:
+  
+  ```js
+  import "blobatar/motion.css";
+  import "blobatar/gaze.css";
+  import { gaze } from "blobatar/gaze";
+  
+  const g = gaze(svg, { target: "pointer" }); // g.stop() tears it down
+  ```
+  
+  A driver is armed by construction and aimed by a target. `gaze(svg)` alone watches nothing: the default is `null`, so the layer is running, the eyes are home, and the idle glance is untouched until something asks for them. `lookAt` is the seam that asks, and it takes a point in client coordinates, an element, or one of two words:
+  
+  ```js
+  g.lookAt({ x: caretX, y: caretY }); // a caret, a card, a spot in the viewport
+  g.lookAt(button); // an element: its centre, re-read as the page moves
+  g.lookAt("pointer"); // the cursor
+  g.lookAt("rest"); // its own centre, held: deliberately not looking
+  g.lookAt(null); // nothing — the eyes ease home and the idle glance comes back
+  ```
+  
+  `"rest"` and `null` are both "stop looking at that", and they are two different requests: `"rest"` keeps the idle glance stood down so the stillness reads as a face choosing not to look, while `null` hands the blobatar back to its own life with the driver still attached and still watching. Neither is `stop()`, which is teardown and snaps. Passing an element is the one worth reaching for: the driver already re-reads its own box on scroll, resize and its own resizes, so a watched element rides on the same machinery instead of the caller writing those listeners by hand.
+  
+  Following the pointer is a target like the others rather than what a driver does when nobody said otherwise. That costs one argument at every call site that wants it, and it buys a layer where nothing starts moving implicitly — worth knowing if you set the excursion and see a face that never moves, because that symptom now has two causes and both are visible from the call site.
+  
+  Nothing changes for anyone who does not import it. `--mo-track-travel` is registered with an initial value of `0px`, so the stylesheet alone resolves to the identity on every blobatar, and the entry is separate from `motion.css` precisely so a page with no pointer driver pays nothing for it.
+  
+  The driver writes custom properties and never a class, because a class added imperatively races the framework for `className` and loses quietly. It parks its rAF loop once the eyes settle, watches `prefers-reduced-motion` and `(hover: hover) and (pointer: fine)` live rather than sampling them once, and stands the idle saccade down through `--mo-track-hold` so a blobatar does not glance away at random while it is watching you.
+  
+  The eyes are marks on a sphere, not stickers sliding on a disc. `project` lifts
+  each eye onto the unit sphere, rotates it about the face's centre and projects it
+  back, so it foreshortens as it turns and cannot pass the limb — asked for more
+  excursion than the head is wide, an eye parks at the edge with no width left and
+  vanishes into it rather than sliding out over the page. Nothing clips anything:
+  there is no `clipPath` and no id, so many blobatars on one page still cannot
+  collide.
+  
+  The head is an ellipsoid fitted to the actual silhouette, not to its bounding
+  box, and inset by the eyes' own size. The roster does not agree on one number —
+  the largest safe ellipse is 0.98 of the box on `round` and 0.39 on `triangle` —
+  so the driver measures it per blobatar on attach, in viewBox units that scrolling
+  cannot change. Across 400 seeds and every shape, no eye leaves a silhouette in
+  the documented 1.5 to 4 range.
+  
+  The cues that used to be tuned per stop for the idle glance are consequences
+  here. Foreshortening is the cosine of the turned longitude; the eye leading into
+  a turn is nearer the limb and compresses harder because that is where it is,
+  not because a coefficient says so; and the convergence tilt is the product of the
+  two sines, which vanishes on the pure axes exactly where a real face shows no
+  tilt. §4.8 of the motion spec is the whole argument.
+  
+  `travel` is unchanged and still a distance in viewBox units. It is read as an arc
+  rather than a slide, and for a small turn the two agree to within a percent, so a
+  face at the documented 1.5 to 4 units moves exactly as far as before. Larger
+  values now saturate at the limb instead of leaving the head.
+  
+  `step` and `project` underneath it are the pursuit and the projection as pure
+  arithmetic, with no clock and no DOM, for renderers that solve frames out of
+  order.
+- 27939a5: Export `survey()` and `Face` from `blobatar/gaze`: the fitted head and eye marks the projection turns on, measured off a rendered blobatar.
+  
+  ```js
+  import { project, survey } from "blobatar/gaze";
+  
+  const face = survey(svg); // { marks, rx, ry } in viewBox units, or null
+  const p = project(face.marks[0], travel / face.rx, travel / face.ry);
+  ```
+  
+  This is the measurement `gaze()` already did in its closure, lifted out unchanged. Nothing about the driver's behaviour moves: it calls this and assigns the result.
+  
+  It is exported because the driver is not the only thing that has to know where an eye rests. `step` and `project` are pure so that a renderer solving frames out of order can use them. `apps/video` integrates its whole pursuit forwards at module load, because the filter is recursive and Remotion hands frames to several workers in arbitrary order. But the projection needs geometry as well as arithmetic, and the fitted ellipsoid is the one input that cannot be derived from a name: it is found by bisection against the rendered silhouette and lands at 0.98 of the box on `round` and 0.39 on `triangle`. Without this, anything not running the driver had to keep a second copy of that fit, which would go on rendering plausibly while the two quietly disagreed about where the limb is.
+  
+  `survey(el)` takes the `<svg>` and returns `null` for a subtree with no layout box (`display: none`, or detached), which is a blobatar that cannot be looked at anyway. `rx` and `ry` are semi-axes in viewBox units and `marks` are fractions of them, already normalised for `project`, so neither number changes when the page scrolls or the blobatar is drawn at a different size. The marks come back in `querySelectorAll(".mo-eye")` order, which is the order `--mo-gz-*1` and `--mo-gz-*2` are picked apart by.
+
 ## 2.5.0
 
 ### Minor Changes
